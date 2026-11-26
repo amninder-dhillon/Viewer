@@ -3,9 +3,12 @@ import ViewerCore
 
 struct ContentView: View {
     @ObservedObject var model: ViewerModel
+    @ObservedObject var viewerWindow: ViewerWindow
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    @State private var windowedColumnVisibility: NavigationSplitViewVisibility = .automatic
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             Sidebar(model: model)
                 .navigationSplitViewColumnWidth(min: 175, ideal: 210, max: 320)
         } detail: {
@@ -23,8 +26,10 @@ struct ContentView: View {
                 if !model.hasOpenedCollection {
                     WelcomeView(model: model)
                 } else {
-                    collectionHeader
-                    Divider()
+                    if !viewerWindow.isFullScreen {
+                        collectionHeader
+                        Divider()
+                    }
                     if model.visiblePhotos.isEmpty {
                         EmptyPhotosView(title: "No images in this folder", description: "Choose another folder to start browsing.", symbol: "photo.on.rectangle.angled")
                     } else if model.mode == .grid {
@@ -41,12 +46,14 @@ struct ContentView: View {
                             RatingControl(model: model)
                         }.padding(.horizontal, 18).padding(.vertical, 10)
                     }
-                    if !model.visiblePhotos.isEmpty, model.mode == .photo {
+                    if !model.visiblePhotos.isEmpty, model.mode == .photo, model.showsFilmstrip {
                         Divider()
                         Filmstrip(model: model)
                     }
-                    Divider()
-                    statusBar
+                    if !viewerWindow.isFullScreen {
+                        Divider()
+                        statusBar
+                    }
                 }
             }
             .background(Color(nsColor: .windowBackgroundColor))
@@ -84,9 +91,25 @@ struct ContentView: View {
                 } label: {
                     Label(model.filter.title, systemImage: model.filter == .all ? "line.3.horizontal.decrease" : "line.3.horizontal.decrease.circle.fill")
                 }.labelStyle(.titleAndIcon).help("Filter navigation by rating; every thumbnail stays visible")
+                Button { viewerWindow.toggleFullScreen() } label: {
+                    Label("Full Screen", systemImage: "arrow.up.left.and.arrow.down.right")
+                }.help("Toggle full screen (F)")
+                Toggle(isOn: $model.showsFilmstrip) {
+                    Label("Filmstrip", systemImage: "film")
+                }.toggleStyle(.button).help("Show or hide filmstrip (T)")
             }
         }
-        .background(KeyboardHandler(model: model).frame(width: 0, height: 0))
+        .toolbar(viewerWindow.isFullScreen ? .hidden : .visible, for: .windowToolbar)
+        .onChange(of: viewerWindow.isFullScreen) { _, fullScreen in
+            if fullScreen {
+                windowedColumnVisibility = columnVisibility
+                columnVisibility = .detailOnly
+                model.mode = .photo
+            } else {
+                columnVisibility = windowedColumnVisibility
+            }
+        }
+        .background(KeyboardHandler(model: model, viewerWindow: viewerWindow).frame(width: 0, height: 0))
         .dropDestination(for: URL.self) { urls, _ in
             guard !urls.isEmpty else { return false }
             model.open(urls)
@@ -121,7 +144,7 @@ struct ContentView: View {
                 Text("\((model.visiblePhotos.count - model.matchingIDs.count).formatted()) excluded")
             }
             Spacer(minLength: 8)
-            Text("← → Matching photos   1–5 Rate   0 Clear").lineLimit(1)
+            Text("← → Matching photos   1–5 Rate   0 Clear   F Full screen   T Filmstrip").lineLimit(1)
         }.font(.caption).foregroundStyle(.secondary).padding(.horizontal, 18).padding(.vertical, 9)
     }
 }

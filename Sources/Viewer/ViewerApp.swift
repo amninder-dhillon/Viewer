@@ -22,11 +22,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct ViewerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var model = ViewerModel.shared
+    @StateObject private var viewerWindow = ViewerWindow()
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         Window("Viewer", id: "main") {
-            ContentView(model: model)
+            ContentView(model: model, viewerWindow: viewerWindow)
                 .onAppear { delegate.showMainWindow = { openWindow(id: "main") } }
         }
         .defaultSize(width: 1120, height: 780)
@@ -37,6 +38,10 @@ struct ViewerApp: App {
                     .keyboardShortcut("o")
                 Button("Open Folder…") { openWindow(id: "main"); model.openFolderPanel() }
                     .keyboardShortcut("o", modifiers: [.command, .shift])
+            }
+            CommandGroup(after: .toolbar) {
+                Toggle("Show Filmstrip", isOn: $model.showsFilmstrip)
+                    .keyboardShortcut("t", modifiers: [.command, .shift])
             }
             CommandMenu("Navigate") {
                 Button("Previous Matching Photo") { model.navigate(.previous) }

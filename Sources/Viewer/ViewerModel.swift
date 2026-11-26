@@ -33,6 +33,9 @@ final class ViewerModel: ObservableObject {
     @Published var filter: RatingFilter = .all { didSet { refreshMatches(); reconcileSelection() } }
     @Published var sort: PhotoSort = .filename { didSet { rebuildVisiblePhotos() } }
     @Published var mode: DisplayMode = .photo
+    @Published var showsFilmstrip = true {
+        didSet { UserDefaults.standard.set(showsFilmstrip, forKey: "showsFilmstrip") }
+    }
     @Published var notice: String?
     @Published var alert: ViewerAlert?
     @Published var hasOpenedCollection = false
@@ -43,9 +46,11 @@ final class ViewerModel: ObservableObject {
     private var photosByID: [String: Photo] = [:]
 
     init() {
+        showsFilmstrip = UserDefaults.standard.object(forKey: "showsFilmstrip") as? Bool ?? true
         do {
             let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            let store = try RatingStore(directory: support.appendingPathComponent("Viewer", isDirectory: true))
+            let applicationName = Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String ?? "Viewer"
+            let store = try RatingStore(directory: support.appendingPathComponent(applicationName, isDirectory: true))
             ratingStore = store
             ratings = store.values
         } catch {

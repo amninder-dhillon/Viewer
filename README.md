@@ -23,6 +23,8 @@ To open images with a double-click in Finder, move `Viewer.app` to Applications 
 - All thumbnails in the current folder scope stay visible. Excluded photos are dimmed and marked; clicking one lets you inspect and rate it. Arrow keys resume at the nearest matching photo in that direction.
 - Changing the filter or lowering a photo's rating below the filter selects the next match, then the previous match if at the end. If none match, the main view shows an empty state and the thumbnails stay accessible.
 - **⌘G:** toggle grid/photo view. **Return** or double-click a grid thumbnail opens it. **Escape:** return to the grid.
+- **F:** toggle native full screen. **Escape** exits full screen first. **⌃⌘F**, the toolbar button, and macOS's green window button also toggle full screen. Entering full screen switches to photo view and hides the sidebar and toolbar; leaving restores the sidebar. The filmstrip, rating stars, **← / →** filtered navigation, and **1–5 / 0** rating shortcuts remain available.
+- **T** or **⇧⌘T:** show or hide the filmstrip in photo view, in both windowed and full-screen mode. The toolbar button and **View → Show Filmstrip** provide the same toggle. The preference is shared between both modes and remembered after restarting Viewer. Navigation and ratings keep working while it is hidden.
 - Selecting a subfolder in the sidebar includes that folder's descendants. Sorting supports filename, folder, and newest first.
 
 ## Ratings and files
