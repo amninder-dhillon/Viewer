@@ -37,6 +37,10 @@ Folder enumeration and image decoding run off the main thread. Only visible thum
 
 Photo view shows a cached thumbnail immediately while the sharper preview loads. If neither size is cached, thumbnail and preview decoding start together, so whichever is ready first appears. Cached sharp previews take precedence, late thumbnails never replace sharper images, and results for a previously selected photo are discarded. If only the thumbnail can be decoded, it remains visible with a “Preview only” indication. This also works with the filmstrip hidden and in full screen.
 
+Image decoding uses a priority queue with at most two running decodes per pipeline (two previews and two thumbnails across the app). The selected photo's thumbnail and preview take priority over queued filmstrip/grid thumbnails; when saturated, the latest selected request is scheduled first. Duplicate requests for the same file, modification time, and size share one decode. Cancelling a subscriber removes its queued work immediately when no other subscribers need it. Running ImageIO calls finish and remain counted against the limit, and their result can still be cached or reused if you return to that photo. If both slots are occupied, a new selection waits for a slot to finish.
+
+For profiling, record the `dev.viewer.mac` subsystem in Instruments' signpost instrument. `PhotoPreview` records the request-to-sharp-preview interval and first-image publication; `ImageDecoding` records queue time, worker duration, decoded byte counts, cache hits, shared requests, and discarded queued work. Use Allocations alongside these events to measure peak memory on representative large images; no fixed speedup is assumed.
+
 ## Tests
 
 ```sh
@@ -46,5 +50,7 @@ bash scripts/test.sh
 Tests cover filtered navigation, excluded-photo inspection, selection after a rating change, zero matches, rating persistence/failure handling, recursive scanning, folder counts, and natural sorting.
 
 Preview-loading tests control decode completion order to verify thumbnail-first display, cache hits, sharp-image precedence, failure fallback, and rejection of stale results during rapid navigation. A real ImageIO decode also verifies thumbnail cache reuse and modification-time invalidation.
+
+Scheduler tests hold workers open to verify the concurrency cap, selected-photo priority, cancellation of obsolete queued requests, independent cancellation of shared subscribers, reuse of still-running decodes, and separation of requests for different image sizes.
 
 The generated app is locally signed for this Mac. Distribution to other Macs requires a Developer ID signature and notarization.
