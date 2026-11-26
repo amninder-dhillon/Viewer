@@ -8,6 +8,7 @@ let package = Package(
     targets: [
         .target(name: "ViewerCore"),
         .executableTarget(name: "Viewer", dependencies: ["ViewerCore"]),
-        .testTarget(name: "ViewerCoreTests", dependencies: ["ViewerCore"])
+        .testTarget(name: "ViewerCoreTests", dependencies: ["ViewerCore"]),
+        .testTarget(name: "ViewerTests", dependencies: ["Viewer", "ViewerCore"])
     ]
 )

@@ -35,6 +35,8 @@ The scanner skips hidden files, package contents, and symbolic links. Images are
 
 Folder enumeration and image decoding run off the main thread. Only visible thumbnails are requested, and thumbnail/preview caches have separate memory limits. Missing or undecodable images display a placeholder so browsing can continue.
 
+Photo view shows a cached thumbnail immediately while the sharper preview loads. If neither size is cached, thumbnail and preview decoding start together, so whichever is ready first appears. Cached sharp previews take precedence, late thumbnails never replace sharper images, and results for a previously selected photo are discarded. If only the thumbnail can be decoded, it remains visible with a “Preview only” indication. This also works with the filmstrip hidden and in full screen.
+
 ## Tests
 
 ```sh
@@ -42,5 +44,7 @@ bash scripts/test.sh
 ```
 
 Tests cover filtered navigation, excluded-photo inspection, selection after a rating change, zero matches, rating persistence/failure handling, recursive scanning, folder counts, and natural sorting.
+
+Preview-loading tests control decode completion order to verify thumbnail-first display, cache hits, sharp-image precedence, failure fallback, and rejection of stale results during rapid navigation. A real ImageIO decode also verifies thumbnail cache reuse and modification-time invalidation.
 
 The generated app is locally signed for this Mac. Distribution to other Macs requires a Developer ID signature and notarization.

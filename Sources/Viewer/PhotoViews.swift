@@ -29,8 +29,10 @@ struct RatingControl: View {
 
 struct PhotoDetail: View {
     @ObservedObject var model: ViewerModel
-    @State private var decoded: DecodedImage?
-    @State private var failed = false
+    @StateObject private var preview = PhotoPreviewLoader()
+
+    // SwiftUI can render a new selection before its task starts. Never show the previous photo under a new filename.
+    private var decoded: DecodedImage? { preview.photo == model.selectedPhoto ? preview.image : nil }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +43,7 @@ struct PhotoDetail: View {
                         Image(decorative: decoded.image, scale: 1)
                             .resizable().scaledToFit().padding(20)
                             .accessibilityLabel(photo.name)
-                    } else if failed {
+                    } else if preview.photo == photo, preview.failed {
                         EmptyPhotosView(title: "This image couldn’t be displayed", description: "The file may be unavailable, damaged, or in an unsupported format. You can continue browsing.", symbol: "exclamationmark.triangle")
                     } else { ProgressView().controlSize(.small) }
                 } else {
@@ -59,6 +61,10 @@ struct PhotoDetail: View {
                             }
                             Text(photo.url.pathExtension.uppercased())
                             Text(ByteCountFormatter.string(fromByteCount: photo.fileSize, countStyle: .file))
+                            if preview.photo == photo, preview.isPreviewOnly {
+                                Label("Preview only", systemImage: "exclamationmark.circle")
+                                    .help("The sharper image could not be decoded. Displaying the available thumbnail.")
+                            }
                             if !model.matchingIDs.contains(photo.id) {
                                 Label("Excluded by filter", systemImage: "line.3.horizontal.decrease.circle")
                             }
@@ -79,13 +85,7 @@ struct PhotoDetail: View {
             }.padding(.horizontal, 20).padding(.vertical, 14)
         }
         .task(id: model.selectedPhoto) {
-            decoded = nil
-            failed = false
-            guard let photo = model.selectedPhoto else { return }
-            let result = await ImagePipeline.previews.load(photo, maxPixelSize: 4000)
-            guard !Task.isCancelled, model.selectedID == photo.id else { return }
-            decoded = result
-            failed = result == nil
+            await preview.load(model.selectedPhoto)
         }
     }
 }
@@ -112,7 +112,7 @@ struct ThumbnailImage: View {
         .task(id: photo) {
             decoded = nil
             failed = false
-            let result = await ImagePipeline.thumbnails.load(photo, maxPixelSize: 480)
+            let result = await ImagePipeline.thumbnails.load(photo, maxPixelSize: ImagePipeline.thumbnailPixelSize)
             guard !Task.isCancelled else { return }
             decoded = result
             failed = result == nil
